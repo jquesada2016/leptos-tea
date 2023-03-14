@@ -2,6 +2,7 @@ use crate::model::{
   Field,
   Model,
 };
+use core::fmt;
 use proc_macro2::TokenStream;
 use quote::{
   format_ident,
@@ -138,10 +139,18 @@ fn format_ty(name: &str, ty: &syn::Type) -> syn::Type {
   ty
 }
 
-#[derive(derive_more::Display)]
 enum ModelStructKind {
   Update,
   View,
+}
+
+impl fmt::Display for ModelStructKind {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Update => f.write_str("Update"),
+      Self::View => f.write_str("View"),
+    }
+  }
 }
 
 fn generate_model_struct(
@@ -333,7 +342,11 @@ fn generate_init_fn_impl(
     #vis fn init<Msg: Default + 'static>(
       self,
       cx: ::leptos::Scope,
-      update_fn: impl Fn(#update_model_name #type_generics, &Msg) + 'static
+      update_fn: impl Fn(
+        #update_model_name #type_generics,
+        &Msg,
+        ::leptos::SignalSetter<Msg>,
+      ) + 'static
     ) -> (#view_model_name #type_generics, ::leptos::SignalSetter<Msg>) {
       let __cx = cx;
       let __update_fn = update_fn;
@@ -347,7 +360,7 @@ fn generate_init_fn_impl(
         ::leptos::SignalWith::try_with(
           &__msg,
           |__msg| {
-            __update_fn(__update_model, __msg);
+            __update_fn(__update_model, __msg, __msg_dispatcher.into());
           }
         )
       });

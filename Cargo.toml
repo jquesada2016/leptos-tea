@@ -9,8 +9,6 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-derive_more = "0.99"
-leptos = "0.2"
 proc-macro2 = "1"
 proc-macro-error = "1"
 quote = "1"
