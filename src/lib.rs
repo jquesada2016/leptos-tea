@@ -1,173 +1,209 @@
-#[macro_export]
-macro_rules! declare_model {
-  (
-    $( #[$model_meta:meta] )*
-    $vis:vis struct $model:ident {
-      $(
-        $( #[$field_meta:meta] )*
-        $field_vis:vis $field_name:ident : $field_ty:ty
-      ),* $(,)?
-    }
-  ) => {
-    paste::paste! {
-      $( #[$model_meta] )*
-      $vis struct $model {
-        $(
-          $( #[$field_meta] )*
-          $field_vis $field_name : $field_ty
-        ),*
-      }
+// macro_rules! declare_model {
+//   (
+//     $( #[$model_meta:meta] )*
+//     $vis:vis struct $model:ident {
+//       $(
+//         $( #[$field_meta:meta] )*
+//         $field_vis:vis $field_name:ident : $field_ty:ty
+//       ),* $(,)?
+//     }
+//   ) => {
+//     paste::paste! {
+//       $( #[$model_meta] )*
+//       $vis struct $model {
+//         $(
+//           $( #[$field_meta] )*
+//           $field_vis $field_name : $field_ty
+//         ),*
+//       }
 
-      $vis struct [<Update $model>] {
-        $(
-          $field_vis $field_name: $crate::__leptos::WriteSignal<$field_ty>
-        ),*
-      }
+//       #[derive(Clone, Copy)]
+//       $vis struct [<Update $model>] {
+//         $(
+//           $field_vis $field_name: leptos_reactive::WriteSignal<$field_ty>
+//         ),*
+//       }
 
-      impl ::core::clone::Clone for [<Update $model>] {
-        fn clone(&self) -> Self {
-          Self {
-            $(
-              $field_name: $crate::__core::clone::Clone::clone(&self.$field_name)
-            ),*
-          }
-        }
-      }
+//       #[derive(Clone, Copy)]
+//       $vis struct [<View $model>] {
+//         $(
+//           $field_vis $field_name: leptos_reactive::ReadSignal<$field_ty>
+//         ),*
+//       }
 
-      impl Copy for [<Update $model>] {}
+//       impl $model {
+//         $vis fn init<Msg: Default + 'static>(
+//           self,
+//           cx: leptos_reactive::Scope,
+//           update_fn: impl Fn([<Update $model>], &Msg) + 'static
+//         ) -> ([<View $model>], $crate::MsgDispatcher<Msg>) {
+//           let Self {
+//             $( $field_name ),*
+//           } = self;
 
-      $vis struct [<View $model>] {
-        $(
-          $field_vis $field_name: $crate::__leptos::ReadSignal<$field_ty>
-        ),*
-      }
+//           let (msg, msg_dispatcher)
+//             = leptos_reactive::create_signal(cx, Msg::default());
 
-      impl ::core::clone::Clone for [<View $model>] {
-        fn clone(&self) -> Self {
-          Self {
-            $(
-              $field_name: self.$field_name.clone()
-            ),*
-          }
-        }
-      }
+//           $(
+//             let ($field_name, [<set_ $field_name>])
+//               = leptos_reactive::create_signal(cx, $field_name);
+//           )*
 
-      impl Copy for [<View $model>] {}
+//           let update_model = [<Update $model>] {
+//             $( $field_name: [<set_ $field_name>] ),*
+//           };
 
-      impl $model {
-        $vis fn init<Msg: Default + 'static>(
-          self,
-          cx: $crate::__leptos::Scope,
-          update_fn: impl Fn([<Update $model>], &Msg) + 'static
-        ) -> ([<View $model>], $crate::MsgDispatcher<Msg>) {
-          let Self {
-            $( $field_name ),*
-          } = self;
+//           let view_model = [<View $model>] {
+//             $( $field_name ),*
+//           };
 
-          let (msg, msg_dispatcher)
-            = $crate::__leptos::create_signal(cx, Msg::default());
+//           leptos_reactive::create_effect(cx, move |_| {
+//             msg.with(|msg| update_fn(update_model, msg));
+//           });
 
-          $(
-            let ($field_name, [<set_ $field_name>])
-              = $crate::__leptos::create_signal(cx, $field_name);
-          )*
+//           (
+//             view_model,
+//             msg_dispatcher.into(),
+//           )
+//         }
+//       }
+//     }
+//   };
 
-          let update_model = [<Update $model>] {
-            $( $field_name: [<set_ $field_name>] ),*
-          };
+//   (
+//     $( #[$model_meta:meta] )*
+//     $vis:vis struct $model:ident (
+//       $(
+//         $( #[$field_meta:meta] )*
+//         $field_vis:vis $field_ty:ty
+//       ),* $(,)?
+//     )
+//   ) => {
+//     paste::paste! {
+//       $( #[$model_meta] )*
+//       $vis struct $model (
+//         $(
+//           $( #[$field_meta] )*
+//           $field_vis $field_ty
+//         ),*
+//       )
 
-          let view_model = [<View $model>] {
-            $( $field_name ),*
-          };
+//       $vis struct [<Update $model>] (
+//         $(
+//           $field_vis leptos_reactive::WriteSignal<$field_ty>
+//         ),*
+//       )
 
-          $crate::__leptos::create_effect(cx, move |_| {
-            msg.with(|msg| update_fn(update_model, msg));
-          });
+//       impl ::core::clone::Clone for [<Update $model>] {
+//         fn clone(&self) -> Self {
+//           let Self(
+//             $( $field ),*
+//           ) = self;
 
-          (
-            view_model,
-            msg_dispatcher.into(),
-          )
-        }
-      }
-    }
-  };
-}
+//           Self(
+//             $( core::clone::Clone::clone($field) ),*
+//           )
+//         }
+//       }
 
-pub type MsgDispatcher<Msg> = SignalSetter<Msg>;
-#[doc(hidden)]
-pub use core as __core;
-#[doc(hidden)]
-pub use leptos as __leptos;
-use leptos::*;
-use std::marker::PhantomData;
+//       impl Copy for [<Update $model>] {}
 
-#[derive(Clone, Copy)]
-struct ModelUpdate<Msg> {
-  counter: WriteSignal<isize>,
-  _msg: PhantomData<Msg>,
-}
+//       $vis struct [<View $model>] {
+//         $(
+//           $field_vis $field_name: leptos_reactive::ReadSignal<$field_ty>
+//         ),*
+//       }
 
-#[derive(Clone, Copy)]
-struct ModelView<Msg> {
-  counter: ReadSignal<isize>,
-  _msg: PhantomData<Msg>,
-}
+//       impl ::core::clone::Clone for [<View $model>] {
+//         fn clone(&self) -> Self {
+//           Self {
+//             $(
+//               $field_name: self.$field_name.clone()
+//             ),*
+//           }
+//         }
+//       }
 
-#[derive(Clone, Copy)]
-struct Model<Msg>(PhantomData<Msg>);
+//       impl Copy for [<View $model>] {}
 
-impl<Msg: Copy + Default + 'static> Model<Msg> {
-  #[allow(clippy::new_ret_no_self)]
-  pub fn new(
-    cx: Scope,
-    update_fn: impl Fn(ModelUpdate<Msg>, &Msg) + 'static,
-  ) -> (ModelView<Msg>, MsgDispatcher<Msg>) {
-    let (counter, set_counter) = create_signal(cx, Default::default());
-    let (msg, msg_dispatcher) = create_signal(cx, Msg::default());
+//       impl $model {
+//         $vis fn init<Msg: Default + 'static>(
+//           self,
+//           cx: leptos_reactive::Scope,
+//           update_fn: impl Fn([<Update $model>], &Msg) + 'static
+//         ) -> ([<View $model>], MsgDispatcher<Msg>) {
+//           let Self {
+//             $( $field_name ),*
+//           } = self;
 
-    let update_model = ModelUpdate {
-      counter: set_counter,
-      _msg: PhantomData,
-    };
+//           let (msg, msg_dispatcher)
+//             = leptos_reactive::create_signal(cx, Msg::default());
 
-    create_effect(cx, move |_| {
-      msg.with(|msg| {
-        update_fn(update_model, msg);
-      });
-    });
+//           $(
+//             let ($field_name, [<set_ $field_name>])
+//               = leptos_reactive::create_signal(cx, $field_name);
+//           )*
 
-    (
-      ModelView {
-        counter,
-        _msg: PhantomData,
-      },
-      msg_dispatcher.into(),
-    )
-  }
-}
+//           let update_model = [<Update $model>] {
+//             $( $field_name: [<set_ $field_name>] ),*
+//           };
 
-#[derive(Clone, Copy, Debug)]
-enum Msg {
-  Increment,
-  Decrement,
-}
+//           let view_model = [<View $model>] {
+//             $( $field_name ),*
+//           };
 
-#[component]
-fn Counter(cx: Scope) -> impl IntoView {}
+//           leptos_reactive::create_effect(cx, move |_| {
+//             msg.with(|msg| update_fn(update_model, msg));
+//           });
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use ::typed_builder::TypedBuilder;
+//           (
+//             view_model,
+//             msg_dispatcher.into(),
+//           )
+//         }
+//       }
+//     }
+//   };
+// }
 
-  #[test]
-  fn compiles() {
-    declare_model! {
-      #[derive(TypedBuilder)]
-      struct Model {
-        counter: isize,
-      }
-    }
-  }
+// use core as __core;
+// #[doc(hidden)]
+// use leptos_reactive::SignalWith;
+// #[doc(hidden)]
+// use std::marker::PhantomData;
+
+// type MsgDispatcher<Msg> = leptos_reactive::SignalSetter<Msg>;
+
+// #[cfg(test)]
+// mod tests {
+//   use super::*;
+//   use ::typed_builder::TypedBuilder;
+
+//   #[test]
+//   fn compiles() {
+//     declare_model! {
+//       #[derive(TypedBuilder)]
+//       struct Model {
+//         counter: isize,
+//       }
+//     }
+//   }
+// }
+
+#[macro_use]
+extern crate proc_macro_error;
+
+mod codegen;
+mod model;
+
+use proc_macro_error::proc_macro_error;
+
+#[proc_macro_derive(Model, attributes(model))]
+#[proc_macro_error]
+pub fn model(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  let ast = syn::parse_macro_input!(stream as syn::DeriveInput);
+
+  let model = model::model(ast);
+
+  codegen::codegen(model).into()
 }

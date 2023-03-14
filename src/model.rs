@@ -1,0 +1,69 @@
+pub struct Model {
+  /// [`None`] for enum variants.
+  pub vis: syn::Visibility,
+  pub name: syn::Ident,
+  /// [`None`] for enum variants.
+  pub generics: syn::Generics,
+  pub fields: Vec<Field>,
+}
+
+impl From<syn::DeriveInput> for Model {
+  fn from(
+    syn::DeriveInput {
+      ident: name,
+      vis,
+      generics,
+      data,
+      ..
+    }: syn::DeriveInput,
+  ) -> Self {
+    match data {
+      syn::Data::Struct(syn::DataStruct { fields, .. }) => Model {
+        vis,
+        name,
+        generics,
+        fields: fields.into_iter().map(Field::from).collect(),
+      },
+      syn::Data::Enum(e) => abort!(e.enum_token, "enums are not supported"),
+      syn::Data::Union(union) => {
+        abort!(union.union_token, "unions are not supported")
+      }
+    }
+  }
+}
+
+pub struct Field {
+  pub vis: syn::Visibility,
+  pub name: Option<syn::Ident>,
+  pub ty: syn::Type,
+  pub is_nested_model: bool,
+}
+
+impl From<syn::Field> for Field {
+  fn from(
+    syn::Field {
+      attrs,
+      vis,
+      ident: name,
+      ty,
+      ..
+    }: syn::Field,
+  ) -> Self {
+    Self {
+      vis,
+      name,
+      ty,
+      is_nested_model: is_nested_model(&attrs),
+    }
+  }
+}
+
+pub fn model(ast: syn::DeriveInput) -> Model {
+  Model::from(ast)
+}
+
+fn is_nested_model(attrs: &[syn::Attribute]) -> bool {
+  attrs
+    .iter()
+    .any(|attr| *attr == syn::parse_quote!(#[model]))
+}
