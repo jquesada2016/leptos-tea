@@ -1,9 +1,8 @@
 pub struct Model {
-  /// [`None`] for enum variants.
   pub vis: syn::Visibility,
   pub name: syn::Ident,
-  /// [`None`] for enum variants.
   pub generics: syn::Generics,
+  pub is_named: bool,
   pub fields: Vec<Field>,
 }
 
@@ -18,12 +17,19 @@ impl From<syn::DeriveInput> for Model {
     }: syn::DeriveInput,
   ) -> Self {
     match data {
-      syn::Data::Struct(syn::DataStruct { fields, .. }) => Model {
-        vis,
-        name,
-        generics,
-        fields: fields.into_iter().map(Field::from).collect(),
-      },
+      syn::Data::Struct(syn::DataStruct { fields, .. }) => {
+        if matches!(fields, syn::Fields::Unit) {
+          abort!(name, "unit structs are not supported");
+        }
+
+        Model {
+          vis,
+          name,
+          generics,
+          is_named: matches!(fields, syn::Fields::Named(_)),
+          fields: fields.into_iter().map(Field::from).collect(),
+        }
+      }
       syn::Data::Enum(e) => abort!(e.enum_token, "enums are not supported"),
       syn::Data::Union(union) => {
         abort!(union.union_token, "unions are not supported")

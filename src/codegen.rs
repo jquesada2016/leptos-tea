@@ -2,7 +2,6 @@ use crate::model::{
   Field,
   Model,
 };
-use leptos::SignalUpdate;
 use proc_macro2::TokenStream;
 use quote::{
   format_ident,
@@ -11,14 +10,8 @@ use quote::{
 use syn::parse_quote;
 
 trait FieldSliceExt: AsRef<[Field]> {
-  fn is_named(&self) -> bool {
-    self.as_ref().iter().any(|field| field.name.is_some())
-  }
-
-  fn to_update_model_fields(&self) -> TokenStream {
+  fn to_update_model_fields(&self, is_named: bool) -> TokenStream {
     let this = self.as_ref();
-
-    let is_named = self.is_named();
 
     let fields = this.iter().map(
       |Field {
@@ -48,10 +41,8 @@ trait FieldSliceExt: AsRef<[Field]> {
     }
   }
 
-  fn to_view_model_fields(&self) -> TokenStream {
+  fn to_view_model_fields(&self, is_named: bool) -> TokenStream {
     let this = self.as_ref();
-
-    let is_named = self.is_named();
 
     let fields = this.iter().map(
       |Field {
@@ -89,16 +80,18 @@ pub fn codegen(
     vis,
     name,
     generics,
+    is_named,
     fields,
   }: Model,
 ) -> TokenStream {
-  codegen_struct(vis, name, generics, fields)
+  codegen_struct(vis, name, generics, is_named, fields)
 }
 
 fn codegen_struct(
   vis: syn::Visibility,
   name: syn::Ident,
   generics: syn::Generics,
+  is_named: bool,
   fields: Vec<Field>,
 ) -> TokenStream {
   let update_struct = generate_model_struct(
@@ -106,6 +99,7 @@ fn codegen_struct(
     &vis,
     &name,
     &generics,
+    is_named,
     &fields,
   );
 
@@ -114,10 +108,12 @@ fn codegen_struct(
     &vis,
     &name,
     &generics,
+    is_named,
     &fields,
   );
 
-  let model_impl = generate_model_impl(&vis, &name, &generics, &fields);
+  let model_impl =
+    generate_model_impl(&vis, &name, &generics, is_named, &fields);
 
   quote! {
     #update_struct
@@ -153,11 +149,10 @@ fn generate_model_struct(
   vis: &syn::Visibility,
   name: &syn::Ident,
   generics: &syn::Generics,
+  is_named: bool,
   fields: &[Field],
 ) -> TokenStream {
   let model_name = format_ident!("{kind}{name}");
-
-  let is_named = fields.is_named();
 
   let model_fields = fields.iter().map(
     |Field {
@@ -209,12 +204,14 @@ fn generate_model_impl(
   vis: &syn::Visibility,
   name: &syn::Ident,
   generics: &syn::Generics,
+  is_named: bool,
   fields: &[Field],
 ) -> TokenStream {
   let (impl_generics, type_generics, where_clause) = generics.split_for_impl();
 
-  let split_fn_impl = generate_split_fn_impl(vis, name, generics, fields);
-  let init_fn_impl = generate_init_fn_impl(vis, name, generics, fields);
+  let split_fn_impl =
+    generate_split_fn_impl(vis, name, generics, is_named, fields);
+  let init_fn_impl = generate_init_fn_impl(vis, name, generics);
 
   quote! {
     impl #impl_generics #name #type_generics #where_clause {
@@ -229,6 +226,7 @@ fn generate_split_fn_impl(
   vis: &syn::Visibility,
   name: &syn::Ident,
   generics: &syn::Generics,
+  is_named: bool,
   fields: &[Field],
 ) -> TokenStream {
   let update_model_name = format_ident!("Update{name}");
@@ -245,8 +243,6 @@ fn generate_split_fn_impl(
       }
     })
     .collect::<Vec<_>>();
-
-  let is_named = fields.is_named();
 
   let get_fields = if is_named {
     quote! { { #( #field_names ),* } }
@@ -327,7 +323,6 @@ fn generate_init_fn_impl(
   vis: &syn::Visibility,
   name: &syn::Ident,
   generics: &syn::Generics,
-  fields: &[Field],
 ) -> TokenStream {
   let update_model_name = format_ident!("Update{name}");
   let view_model_name = format_ident!("View{name}");
