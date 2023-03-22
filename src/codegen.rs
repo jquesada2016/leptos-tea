@@ -24,7 +24,7 @@ trait FieldSliceExt: AsRef<[Field]> {
         let ty = if *is_nested_model {
           format_ty("Update", ty)
         } else {
-          syn::parse_quote! { ::leptos::WriteSignal<#ty> }
+          syn::parse_quote! { ::leptos::RwSignal<#ty> }
         };
 
         if is_named {
@@ -175,7 +175,7 @@ fn generate_model_struct(
           if *is_nested_model {
             format_ty(&kind.to_string(), ty)
           } else {
-            parse_quote! { ::leptos::WriteSignal<#ty> }
+            parse_quote! { ::leptos::RwSignal<#ty> }
           }
         }
         ModelStructKind::View => {
@@ -276,8 +276,8 @@ fn generate_split_fn_impl(
           quote! { let (#read_name, #write_name) = #field_name.split(__cx); }
         } else {
           quote! {
-            let (#read_name, #write_name)
-              = ::leptos::create_signal(__cx, #field_name);
+            let #write_name = ::leptos::create_rw_signal(__cx, #field_name);
+            let #read_name = #write_name.read_only();
           }
         };
 
