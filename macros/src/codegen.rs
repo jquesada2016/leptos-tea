@@ -345,7 +345,7 @@ fn generate_init_fn_impl(
       update_fn: impl Fn(
         #update_model_name #type_generics,
         &Msg,
-        ::leptos::SignalSetter<Msg>,
+        ::leptos_tea::Cmd<Msg>,
       ) + 'static
     ) -> (#view_model_name #type_generics, ::leptos::SignalSetter<Msg>) {
       let __cx = cx;
@@ -357,10 +357,17 @@ fn generate_init_fn_impl(
       let (__view_model, __update_model) = self.split(cx);
 
       ::leptos::create_effect(__cx, move |_| {
+        let __cmd_dispatcher
+        = ::leptos_tea::Cmd::new(__msg_dispatcher.into());
+
         ::leptos::SignalWith::try_with(
           &__msg,
           |__msg| {
-            __update_fn(__update_model, __msg, __msg_dispatcher.into());
+            __update_fn(
+              __update_model,
+              __msg,
+              __cmd_dispatcher,
+            );
           }
         )
       });
