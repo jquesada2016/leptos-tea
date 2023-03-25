@@ -1,3 +1,4 @@
+use futures::FutureExt;
 use leptos::*;
 pub use leptos_tea_macros::*;
 use smallvec::SmallVec;
@@ -6,7 +7,7 @@ use std::{
   pin::Pin,
 };
 
-pub type CmdFut<Msg> = Pin<Box<dyn Future<Output = Option<Msg>>>>;
+type CmdFut<Msg> = Pin<Box<dyn Future<Output = SmallVec<[Msg; 4]>>>>;
 
 pub struct Cmd<Msg: 'static> {
   msg_dispatcher: SignalSetter<Msg>,
@@ -38,11 +39,14 @@ impl<Msg: 'static> Cmd<Msg> {
     self
   }
 
-  pub fn cmd<Fut: Future<Output = Option<Msg>> + 'static>(
-    &mut self,
-    cmd: Fut,
-  ) -> &mut Self {
-    self.cmds.push(Box::pin(cmd));
+  pub fn cmd<Fut, I>(&mut self, cmd: Fut) -> &mut Self
+  where
+    Fut: Future<Output = I> + 'static,
+    I: IntoIterator<Item = Msg>,
+  {
+    self
+      .cmds
+      .push(Box::pin(cmd.map(|i| i.into_iter().collect())));
 
     self
   }
@@ -52,16 +56,22 @@ impl<Msg: 'static> Drop for Cmd<Msg> {
   fn drop(&mut self) {
     let msg_dispatcher = self.msg_dispatcher;
 
-    for msg in std::mem::take(&mut self.msgs) {
-      queue_microtask(move || msg_dispatcher.set(msg));
-    }
-
-    for cmd in std::mem::take(&mut self.cmds) {
+    for cmds in std::mem::take(&mut self.cmds) {
       spawn_local(async move {
-        if let Some(msg) = cmd.await {
-          msg_dispatcher.set(msg);
+        let mut cmds = cmds.await.into_iter();
+
+        if let Some(msg) = cmds.next() {
+          msg_dispatcher(msg);
+        }
+
+        for msg in cmds {
+          spawn_local(async move { msg_dispatcher(msg) });
         }
       });
+    }
+
+    for msg in std::mem::take(&mut self.msgs) {
+      queue_microtask(move || msg_dispatcher.set(msg));
     }
   }
 }
