@@ -2,6 +2,7 @@
 name = "leptos_tea"
 version = "0.1.0"
 edition = "2021"
+description = "The Elm Architecture for leptos."
 license = "MIT"
 authors = ["Jose Quesada <jquesada2016@fau.edu>"]
 homepage = "https://github.com/jquesada2016/leptos-tea"
