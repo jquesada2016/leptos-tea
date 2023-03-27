@@ -3,6 +3,7 @@ name = "leptos_tea_macros"
 version = "0.1.0"
 description = "Macros used by leptos_tea."
 authors = ["Jose Quesada <jquesada2016@fau.edu>"]
+license = "MIT"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
