@@ -64,6 +64,7 @@ impl From<syn::Field> for Field {
   }
 }
 
+/// Derives all the goodness neaded for making some leptos tea.
 pub fn model(ast: syn::DeriveInput) -> Model {
   Model::from(ast)
 }
