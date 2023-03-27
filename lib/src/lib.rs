@@ -117,9 +117,8 @@
 //!
 //! # Limitations
 //!
-//! `leptos_tea::Model` **only** supports tuple and field structs.
-//! Enums are therefore not currently supported for a few reasons.
-//! Support will most likely be added soon.
+//! `leptos_tea::Model` currently only supports tuple and field structs.
+//! Support will be added soon.
 
 use futures::FutureExt;
 use leptos::*;

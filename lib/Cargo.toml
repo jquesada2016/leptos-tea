@@ -2,6 +2,13 @@
 name = "leptos_tea"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["Jose Quesada <jquesada2016@fau.edu>"]
+homepage = "https://github.com/jquesada2016/leptos-tea"
+repository = "https://github.com/jquesada2016/leptos-tea"
+documentation = "https://docs.rs/leptos_tea"
+keywords = ["leptos", "web", "framework", "reactive", "isomorphic"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
