@@ -363,11 +363,13 @@ fn generate_init_fn_impl(
         ::leptos::SignalWith::try_with(
           &__msg,
           |__msg| {
-            __update_fn(
-              __update_model,
-              __msg,
-              __cmd_dispatcher,
-            );
+            __cx.untrack(|| {
+              __update_fn(
+                __update_model,
+                __msg,
+                __cmd_dispatcher,
+              );
+            });
           }
         )
       });

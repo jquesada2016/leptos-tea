@@ -1,6 +1,6 @@
 [package]
 name = "leptos_tea"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "The Elm Architecture for leptos."
 license = "MIT"
