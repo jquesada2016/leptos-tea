@@ -261,13 +261,46 @@ impl<Msg> Fn<(Msg,)> for MsgDispatcher<Msg> {
 }
 
 impl<Msg> MsgDispatcher<Msg> {
+  /// Sends a message to the update function.
+  ///
+  /// This is the same as calling `msg_dispatcher.set(msg)`, or on
+  /// nightly, `msg_dispatcher(msg)`.
+  #[inline]
+  pub fn dispatch(self, msg: Msg) {
+    self.set(msg);
+  }
+
   /// Queues the message to be sent to the update function on
-  /// the next micro task, instead of sending the message
+  /// the next micro-task, instead of sending the message
   /// immediately.
   ///
   /// This can be used to work around some edge cases where
   /// [`leptos_reactive`] panics.
   pub fn queue_msg(self, msg: Msg) {
-    queue_microtask(move || self.0.set(msg));
+    queue_microtask(move || self.dispatch(msg));
+  }
+
+  /// Batches multiple messages together.
+  ///
+  /// All messages are sent one after another.
+  pub fn batch<I>(self, msgs: I)
+  where
+    I: IntoIterator<Item = Msg>,
+  {
+    for msg in msgs {
+      self.dispatch(msg);
+    }
+  }
+
+  /// Batches multiple messages together on the next micro-task.
+  ///
+  /// All messages will be send on separate micro-tasks.
+  pub fn queue_batch<I>(self, msgs: I)
+  where
+    I: IntoIterator<Item = Msg>,
+  {
+    for msg in msgs {
+      queue_microtask(move || self.dispatch(msg));
+    }
   }
 }
