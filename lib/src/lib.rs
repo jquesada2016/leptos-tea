@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "stable"), feature(unboxed_closures, fn_traits))]
 #![deny(missing_docs)]
 
 //! The Elm Architecture for [`leptos`].
@@ -121,7 +122,7 @@
 //! Support will be added soon.
 
 use futures::FutureExt;
-use leptos::*;
+use leptos_reactive::*;
 pub use leptos_tea_macros::*;
 use smallvec::SmallVec;
 use std::{
@@ -206,5 +207,67 @@ impl<Msg: 'static> Drop for Cmd<Msg> {
     for msg in std::mem::take(&mut self.msgs) {
       queue_microtask(move || msg_dispatcher.set(msg));
     }
+  }
+}
+
+/// Used to send messages to the `update` function.
+pub struct MsgDispatcher<Msg: 'static>(WriteSignal<Msg>);
+
+impl<Msg: 'static> From<WriteSignal<Msg>> for MsgDispatcher<Msg> {
+  fn from(writer: WriteSignal<Msg>) -> Self {
+    Self(writer)
+  }
+}
+
+impl<Msg: 'static> Clone for MsgDispatcher<Msg> {
+  fn clone(&self) -> Self {
+    Self(self.0)
+  }
+}
+
+impl<Msg: 'static> Copy for MsgDispatcher<Msg> {}
+
+impl<Msg: 'static> SignalSet<Msg> for MsgDispatcher<Msg> {
+  fn set(&self, new_value: Msg) {
+    self.0.set(new_value);
+  }
+
+  fn try_set(&self, new_value: Msg) -> Option<Msg> {
+    self.0.try_set(new_value)
+  }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<Msg> FnOnce<(Msg,)> for MsgDispatcher<Msg> {
+  type Output = ();
+
+  extern "rust-call" fn call_once(self, args: (Msg,)) -> Self::Output {
+    self.set(args.0);
+  }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<Msg> FnMut<(Msg,)> for MsgDispatcher<Msg> {
+  extern "rust-call" fn call_mut(&mut self, args: (Msg,)) -> Self::Output {
+    self.set(args.0);
+  }
+}
+
+#[cfg(not(feature = "stable"))]
+impl<Msg> Fn<(Msg,)> for MsgDispatcher<Msg> {
+  extern "rust-call" fn call(&self, args: (Msg,)) -> Self::Output {
+    self.set(args.0);
+  }
+}
+
+impl<Msg> MsgDispatcher<Msg> {
+  /// Queues the message to be sent to the update function on
+  /// the next micro task, instead of sending the message
+  /// immediately.
+  ///
+  /// This can be used to work around some edge cases where
+  /// [`leptos_reactive`] panics.
+  pub fn queue_msg(self, msg: Msg) {
+    queue_microtask(move || self.0.set(msg));
   }
 }
