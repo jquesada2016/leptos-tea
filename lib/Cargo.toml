@@ -18,7 +18,7 @@ stable = []
 [dependencies]
 futures = "0.3"
 leptos_reactive = "0.2"
-leptos_tea_macros = { version = "0.2.1", path = "../macros" }
+leptos_tea_macros = { version = "0.2.2", path = "../macros" }
 smallvec = "1"
 
 [dev-dependencies]
