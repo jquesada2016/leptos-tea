@@ -20,7 +20,7 @@
 //!   counter: usize,
 //! }
 //!
-//! #[derive(Default)]
+//! #[derive(Clone, Default)]
 //! enum Msg {
 //!   Increment,
 //!   Decrement,
@@ -28,7 +28,7 @@
 //!   Init,
 //! }
 //!
-//! fn update(model: UpdateCounterModel, msg: &Msg, _: Cmd<Msg>) {
+//! fn update(model: UpdateCounterModel, msg: Msg, _: Cmd<Msg>) {
 //!   match msg {
 //!     Msg::Increment => model.counter.update(|c| *c += 1),
 //!     Msg::Decrement => model.counter.update(|c| *c -= 1),
@@ -183,6 +183,18 @@ impl<Msg: 'static> Cmd<Msg> {
       .push(Box::pin(cmd.map(|i| i.into_iter().collect())));
 
     self
+  }
+}
+
+/// Creates a new [`Cmd`] struct to send dispatch messages
+/// to the `update` function.
+impl<Msg: 'static> Clone for Cmd<Msg> {
+  fn clone(&self) -> Self {
+    Self {
+      msg_dispatcher: self.msg_dispatcher,
+      msgs: Default::default(),
+      cmds: Default::default(),
+    }
   }
 }
 

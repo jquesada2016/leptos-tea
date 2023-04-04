@@ -339,12 +339,12 @@ fn generate_init_fn_impl(
   let (_, type_generics, _) = generics.split_for_impl();
 
   quote! {
-    #vis fn init<Msg: ::core::default::Default + 'static>(
+    #vis fn init<Msg: ::core::default::Default + ::core::clone::Clone + 'static>(
       self,
       cx: ::leptos::Scope,
       update_fn: impl ::core::ops::Fn(
         #update_model_name #type_generics,
-        &Msg,
+        Msg,
         ::leptos_tea::Cmd<Msg>,
       ) + 'static
     ) -> (#view_model_name #type_generics, ::leptos_tea::MsgDispatcher<Msg>) {
@@ -360,18 +360,24 @@ fn generate_init_fn_impl(
         let __cmd_dispatcher
         = ::leptos_tea::Cmd::new(::core::convert::Into::into(__msg_dispatcher));
 
-        ::leptos::SignalWith::try_with(
-          &__msg,
-          |__msg| {
-            __cx.untrack(|| {
-              __update_fn(
-                __update_model,
-                __msg,
-                __cmd_dispatcher,
-              );
-            });
-          }
-        )
+        // ::leptos::SignalWith::try_with(
+        //   &__msg,
+        //   |__msg| {
+        //     __cx.untrack(|| {
+        //       __update_fn(
+        //         __update_model,
+        //         __msg,
+        //         __cmd_dispatcher,
+        //       );
+        //     });
+        //   }
+        // )
+
+        __update_fn(
+          __update_model,
+          ::leptos::SignalGet::get(&__msg),
+          __cmd_dispatcher,
+        );
       });
 
       (__view_model, ::core::convert::Into::into(__msg_dispatcher))
