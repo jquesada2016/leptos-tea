@@ -155,25 +155,18 @@ impl<Msg: 'static> Cmd<Msg> {
 
   /// Adds this message to the command queue which will be dispatched
   /// to the update function on the next microtask.
-  pub fn msg(&mut self, msg: Msg) -> &mut Self {
+  pub fn msg(&mut self, msg: Msg) {
     self.msgs.push(msg);
-
-    self
   }
 
   /// Same as [`Cmd::msg`], but allows adding multiple messages at once.
-  pub fn batch_msgs<I: IntoIterator<Item = Msg>>(
-    &mut self,
-    msgs: I,
-  ) -> &mut Self {
+  pub fn batch_msgs<I: IntoIterator<Item = Msg>>(&mut self, msgs: I) {
     self.msgs.extend(msgs);
-
-    self
   }
 
   /// Adds a command to the queue that will be executed when
   /// this struct is dropped.
-  pub fn cmd<Fut, I>(&mut self, cmd: Fut) -> &mut Self
+  pub fn cmd<Fut, I>(&mut self, cmd: Fut)
   where
     Fut: Future<Output = I> + 'static,
     I: IntoIterator<Item = Msg>,
@@ -181,8 +174,18 @@ impl<Msg: 'static> Cmd<Msg> {
     self
       .cmds
       .push(Box::pin(cmd.map(|i| i.into_iter().collect())));
+  }
 
-    self
+  /// Manually perform all commands and dispatch messages now rather
+  /// than when dropping.
+  pub fn perform(&mut self) {
+    // Will perform actions on drop, so pseudo-clone it
+    // and just let it drop
+    Self {
+      msg_dispatcher: self.msg_dispatcher,
+      msgs: core::mem::take(&mut self.msgs),
+      cmds: core::mem::take(&mut self.cmds),
+    };
   }
 }
 

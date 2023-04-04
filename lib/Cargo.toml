@@ -1,6 +1,6 @@
 [package]
 name = "leptos_tea"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 description = "The Elm Architecture for leptos."
 license = "MIT"
@@ -18,7 +18,7 @@ stable = []
 [dependencies]
 futures = "0.3"
 leptos_reactive = "0.2"
-leptos_tea_macros = { version = "0.2.3", path = "../macros" }
+leptos_tea_macros = { version = "0.3.0", path = "../macros" }
 smallvec = "1"
 
 [dev-dependencies]
