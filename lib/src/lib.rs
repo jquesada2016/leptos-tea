@@ -20,7 +20,7 @@
 //!   counter: usize,
 //! }
 //!
-//! #[derive(Clone, Default)]
+//! #[derive(Default)]
 //! enum Msg {
 //!   Increment,
 //!   Decrement,
@@ -28,7 +28,7 @@
 //!   Init,
 //! }
 //!
-//! fn update(model: UpdateCounterModel, msg: Msg, _: Cmd<Msg>) {
+//! fn update(model: UpdateCounterModel, msg: &Msg, _: Cmd<Msg>) {
 //!   match msg {
 //!     Msg::Increment => model.counter.update(|c| *c += 1),
 //!     Msg::Decrement => model.counter.update(|c| *c -= 1),
