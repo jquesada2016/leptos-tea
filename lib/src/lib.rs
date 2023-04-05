@@ -244,7 +244,9 @@ impl<Msg: 'static> Copy for MsgDispatcher<Msg> {}
 
 impl<Msg: 'static> SignalSet<Msg> for MsgDispatcher<Msg> {
   fn set(&self, new_value: Msg) {
-    self.0.set(new_value);
+    let dispatcher = self.0;
+
+    queue_microtask(move || dispatcher.set(new_value));
   }
 
   fn try_set(&self, new_value: Msg) -> Option<Msg> {
@@ -257,21 +259,21 @@ impl<Msg> FnOnce<(Msg,)> for MsgDispatcher<Msg> {
   type Output = ();
 
   extern "rust-call" fn call_once(self, args: (Msg,)) -> Self::Output {
-    self.set(args.0);
+    self.dispatch(args.0);
   }
 }
 
 #[cfg(not(feature = "stable"))]
 impl<Msg> FnMut<(Msg,)> for MsgDispatcher<Msg> {
   extern "rust-call" fn call_mut(&mut self, args: (Msg,)) -> Self::Output {
-    self.set(args.0);
+    self.dispatch(args.0);
   }
 }
 
 #[cfg(not(feature = "stable"))]
 impl<Msg> Fn<(Msg,)> for MsgDispatcher<Msg> {
   extern "rust-call" fn call(&self, args: (Msg,)) -> Self::Output {
-    self.set(args.0);
+    self.dispatch(args.0);
   }
 }
 
@@ -285,16 +287,6 @@ impl<Msg> MsgDispatcher<Msg> {
     self.set(msg);
   }
 
-  /// Queues the message to be sent to the update function on
-  /// the next micro-task, instead of sending the message
-  /// immediately.
-  ///
-  /// This can be used to work around some edge cases where
-  /// [`leptos_reactive`] panics.
-  pub fn queue_msg(self, msg: Msg) {
-    queue_microtask(move || self.dispatch(msg));
-  }
-
   /// Batches multiple messages together.
   ///
   /// All messages are sent one after another.
@@ -304,18 +296,6 @@ impl<Msg> MsgDispatcher<Msg> {
   {
     for msg in msgs {
       self.dispatch(msg);
-    }
-  }
-
-  /// Batches multiple messages together on the next micro-task.
-  ///
-  /// All messages will be send on separate micro-tasks.
-  pub fn queue_batch<I>(self, msgs: I)
-  where
-    I: IntoIterator<Item = Msg>,
-  {
-    for msg in msgs {
-      queue_microtask(move || self.dispatch(msg));
     }
   }
 }
