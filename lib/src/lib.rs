@@ -287,6 +287,12 @@ impl<Msg> MsgDispatcher<Msg> {
     self.set(msg);
   }
 
+  /// Dispatches the message immediately, rather than waiting for
+  /// the next micro-task.
+  pub fn dispatch_immediate(self, msg: Msg) {
+    self.0.set(msg);
+  }
+
   /// Batches multiple messages together.
   ///
   /// All messages are sent one after another.
