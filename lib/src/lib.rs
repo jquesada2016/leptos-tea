@@ -122,7 +122,7 @@
 //! Support will be added soon.
 
 use futures::FutureExt;
-use leptos_reactive::*;
+use leptos::*;
 pub use leptos_tea_macros::*;
 use smallvec::SmallVec;
 use std::{
@@ -242,6 +242,10 @@ impl<Msg: 'static> Clone for MsgDispatcher<Msg> {
 
 impl<Msg: 'static> Copy for MsgDispatcher<Msg> {}
 
+/// Does not immediately send the value, rather it waits for
+/// the next micro-task. This is done to avoid panics within
+/// the leptos runtime. If you need to send the message
+/// immediately, refer to [`MsgDispatcher::dispatch_immediate`].
 impl<Msg: 'static> SignalSet<Msg> for MsgDispatcher<Msg> {
   fn set(&self, new_value: Msg) {
     let dispatcher = self.0;
@@ -278,7 +282,12 @@ impl<Msg> Fn<(Msg,)> for MsgDispatcher<Msg> {
 }
 
 impl<Msg> MsgDispatcher<Msg> {
-  /// Sends a message to the update function.
+  /// Dispatches the message to the update function.
+  ///
+  /// Does not immediately send the value, rather it waits for
+  /// the next micro-task. This is done to avoid panics within
+  /// the leptos runtime. If you need to send the message
+  /// immediately, refer to [`MsgDispatcher::dispatch_immediate`].
   ///
   /// This is the same as calling `msg_dispatcher.set(msg)`, or on
   /// nightly, `msg_dispatcher(msg)`.
