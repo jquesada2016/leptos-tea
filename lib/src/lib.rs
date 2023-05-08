@@ -210,11 +210,11 @@ impl<Msg: 'static> Drop for Cmd<Msg> {
         let mut cmds = cmds.await.into_iter();
 
         if let Some(msg) = cmds.next() {
-          msg_dispatcher(msg);
+          msg_dispatcher.set(msg);
         }
 
         for msg in cmds {
-          spawn_local(async move { msg_dispatcher(msg) });
+          spawn_local(async move { msg_dispatcher.set(msg) });
         }
       });
     }
