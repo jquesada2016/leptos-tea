@@ -1,6 +1,6 @@
 [package]
 name = "leptos_tea_macros"
-version = "0.3.0"
+version = "0.4.0"
 description = "Macros used by leptos_tea."
 authors = ["Jose Quesada <jquesada2016@fau.edu>"]
 license = "MIT"
