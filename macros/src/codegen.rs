@@ -24,7 +24,7 @@ trait FieldSliceExt: AsRef<[Field]> {
         let ty = if *is_nested_model {
           format_ty("Update", ty)
         } else {
-          syn::parse_quote! { ::leptos_reactive::RwSignal<#ty> }
+          syn::parse_quote! { ::leptos_tea::leptos_reactive::RwSignal<#ty> }
         };
 
         if is_named {
@@ -55,7 +55,7 @@ trait FieldSliceExt: AsRef<[Field]> {
         let ty = if *is_nested_model {
           format_ty("View", ty)
         } else {
-          syn::parse_quote! { ::leptos_reactive::ReadSignal<#ty> }
+          syn::parse_quote! { ::leptos_tea::leptos_reactive::ReadSignal<#ty> }
         };
 
         if is_named {
@@ -175,14 +175,14 @@ fn generate_model_struct(
           if *is_nested_model {
             format_ty(&kind.to_string(), ty)
           } else {
-            parse_quote! { ::leptos_reactive::RwSignal<#ty> }
+            parse_quote! { ::leptos_tea::leptos_reactive::RwSignal<#ty> }
           }
         }
         ModelStructKind::View => {
           if *is_nested_model {
             format_ty(&kind.to_string(), ty)
           } else {
-            parse_quote! { ::leptos_reactive::ReadSignal<#ty> }
+            parse_quote! { ::leptos_tea::leptos_reactive::ReadSignal<#ty> }
           }
         }
       };
@@ -276,7 +276,7 @@ fn generate_split_fn_impl(
           quote! { let (#read_name, #write_name) = #field_name.split(__cx); }
         } else {
           quote! {
-            let #write_name = ::leptos_reactive::create_rw_signal(__cx, #field_name);
+            let #write_name = ::leptos_tea::leptos_reactive::create_rw_signal(__cx, #field_name);
             let #read_name = #write_name.read_only();
           }
         };
@@ -312,7 +312,7 @@ fn generate_split_fn_impl(
   quote! {
     #vis fn split(
       self,
-      cx: ::leptos_reactive::Scope
+      cx: ::leptos_tea::leptos_reactive::Scope
     ) -> (#view_model_name #type_generics, #update_model_name #type_generics) {
       let __cx = cx;
 
@@ -341,7 +341,7 @@ fn generate_init_fn_impl(
   quote! {
     #vis fn init<Msg: ::core::default::Default + 'static>(
       self,
-      cx: ::leptos_reactive::Scope,
+      cx: ::leptos_tea::leptos_reactive::Scope,
       update_fn: impl ::core::ops::Fn(
         #update_model_name #type_generics,
         Msg,
@@ -352,14 +352,14 @@ fn generate_init_fn_impl(
       let __update_fn = update_fn;
 
       let __rw_msg
-        = ::leptos_reactive::create_rw_signal(__cx, ::core::option::Option::Some(<Msg as ::core::default::Default>::default()));
+        = ::leptos_tea::leptos_reactive::create_rw_signal(__cx, ::core::option::Option::Some(<Msg as ::core::default::Default>::default()));
 
       let (__view_model, __update_model) = self.split(cx);
 
-      ::leptos_reactive::create_effect(__cx, move |_| {
+      ::leptos_tea::leptos_reactive::create_effect(__cx, move |_| {
         let __cmd_dispatcher = ::leptos_tea::Cmd::new(__rw_msg);
 
-        ::leptos_reactive::SignalUpdate::try_update(
+        ::leptos_tea::leptos_reactive::SignalUpdate::try_update(
           &__rw_msg,
           |__msg| {
             let __msg = __msg.take().unwrap();
