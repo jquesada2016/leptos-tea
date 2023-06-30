@@ -1,13 +1,7 @@
-use crate::model::{
-  Field,
-  Model,
-};
+use crate::model::{Field, Model};
 use core::fmt;
 use proc_macro2::TokenStream;
-use quote::{
-  format_ident,
-  quote,
-};
+use quote::{format_ident, quote};
 use syn::parse_quote;
 
 trait FieldSliceExt: AsRef<[Field]> {
@@ -351,31 +345,26 @@ fn generate_init_fn_impl(
       let __cx = cx;
       let __update_fn = update_fn;
 
-      let __rw_msg
-        = ::leptos_tea::leptos_reactive::create_rw_signal(__cx, ::core::option::Option::Some(<Msg as ::core::default::Default>::default()));
+      let (__tx, mut __rx)
+        = ::leptos_tea::futures::channel::mpsc::unbounded();
+
+      __tx.unbounded_send(Msg::default()).unwrap();
+
+      let __tx_store = ::leptos_tea::leptos_reactive::store_value(cx, __tx);
 
       let (__view_model, __update_model) = self.split(cx);
 
-      ::leptos_tea::leptos_reactive::create_effect(__cx, move |_| {
-        let __cmd_dispatcher = ::leptos_tea::Cmd::new(__rw_msg);
+      ::leptos_tea::leptos_reactive::spawn_local(async move {
+        while let Some(msg)
+          = ::leptos_tea::futures::StreamExt::next(&mut __rx).await
+        {
+          let __cmd_dispatcher = ::leptos_tea::Cmd::new(__tx_store);
 
-        ::leptos_tea::leptos_reactive::SignalUpdate::try_update(
-          &__rw_msg,
-          |__msg| {
-            let __msg = __msg.take().unwrap();
-
-            __cx.untrack(|| {
-              __update_fn(
-                __update_model,
-                __msg,
-                __cmd_dispatcher,
-              );
-            });
-          }
-        )
+          __update_fn(__update_model, msg, __cmd_dispatcher);
+        }
       });
 
-      (__view_model, ::core::convert::Into::into(__rw_msg))
+      (__view_model, ::leptos_tea::MsgDispatcher::new(__tx_store))
     }
   }
 }

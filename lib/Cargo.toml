@@ -13,14 +13,15 @@ keywords = ["leptos", "web", "framework", "reactive", "isomorphic"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-stable = ["leptos/stable"]
+nightly = ["leptos_reactive/nightly"]
 
 [dependencies]
 futures = "0.3"
-leptos_reactive = "0.3"
+leptos_reactive = "0.4"
 leptos_tea_macros = { version = "0.5", path = "../macros" }
 smallvec = "1"
+tracing = "0.1"
 wasm-bindgen-futures = "0.4"
 
 [dev-dependencies]
-leptos = "0.3"
+leptos = { version = "0.4", features = ["nightly"] }

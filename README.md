@@ -8,6 +8,10 @@ management approaches.
 First, let's look at an example.
 
 # Example
+
+**Note**: This example uses the `nightly` feature flag for
+both `leptos_tea` and `leptos`.
+
 ```rust
 use leptos::*;
 use leptos_tea::Cmd;
@@ -109,3 +113,7 @@ struct InnerModel(/* ... */);
 
 `leptos_tea::Model` currently only supports tuple and field structs.
 Enum support will be added soon.
+
+# Features
+
+- `nightly`: Implements `Fn(Msg)` for `MsgDispatcher`.
