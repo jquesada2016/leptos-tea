@@ -1,7 +1,13 @@
-use crate::model::{Field, Model};
+use crate::model::{
+  Field,
+  Model,
+};
 use core::fmt;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::{
+  format_ident,
+  quote,
+};
 use syn::parse_quote;
 
 trait FieldSliceExt: AsRef<[Field]> {
