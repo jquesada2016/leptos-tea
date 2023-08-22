@@ -41,13 +41,13 @@
 //! }
 //!
 //! #[component]
-//! fn Counter(cx: Scope) -> impl IntoView {
-//!   let (model, msg_dispatcher) = CounterModel::default().init(cx, update);
+//! fn Counter() -> impl IntoView {
+//!   let (model, msg_dispatcher) = CounterModel::default().init(update);
 //!
-//!   view! { cx,
+//!   view! {
 //!     <h1>{model.counter}</h1>
-//!    <button on:click=move |_| msg_dispatcher.dispatch(Msg::Decrement)>"-"</button>
-//!    <button on:click=move |_| msg_dispatcher.dispatch(Msg::Increment)>"+"</button>
+//!    <button on:click=move |_| msg_dispatcher(Msg::Decrement)>"-"</button>
+//!    <button on:click=move |_| msg_dispatcher(Msg::Increment)>"+"</button>
 //!   }
 //! }
 //! ```
@@ -80,7 +80,6 @@
 //!   // called
 //!   fn init<Msg: Default + 'static>(
 //!     self,
-//!     cx: Scope,
 //!     update_fn: impl Fn(UpdateCounterModel, Msg, Cmd<Msg>),
 //!   ) -> (ViewCounterModel, SignalSetter<Msg>) {
 //!     /* ... */
@@ -162,7 +161,7 @@ impl<Msg: 'static> Cmd<Msg> {
   }
 
   /// Adds this message to the command queue which will be dispatched
-  /// to the update function on the next microtask.
+  /// to the update function on [`Drop`] or on [`Cmd::perform`].
   pub fn msg(&mut self, msg: Msg) {
     self.msgs.push(msg);
   }
@@ -172,7 +171,7 @@ impl<Msg: 'static> Cmd<Msg> {
     self.msgs.extend(msgs);
   }
 
-  /// Adds a command to the queue that will be executed when
+  /// Adds an asynchronous task to the queue that will be executed when
   /// this struct is dropped.
   pub fn cmd<Fut, I>(&mut self, cmd: Fut)
   where
@@ -290,8 +289,8 @@ impl<Msg> MsgDispatcher<Msg> {
   /// the leptos runtime. If you need to send the message
   /// immediately, refer to [`MsgDispatcher::dispatch_immediate`].
   ///
-  /// This is the same as calling `msg_dispatcher.set(msg)`, or on
-  /// nightly, `msg_dispatcher(msg)`.
+  /// This is the same as calling  `msg_dispatcher(msg)`
+  /// on nightly.
   pub fn dispatch(self, msg: Msg) {
     let mut msg_dispatcher = self.0.get_value();
 

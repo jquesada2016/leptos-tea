@@ -273,10 +273,10 @@ fn generate_split_fn_impl(
         let write_name = format_ident!("__write_{field_name}");
 
         let split = if *is_nested_model {
-          quote! { let (#read_name, #write_name) = #field_name.split(__cx); }
+          quote! { let (#read_name, #write_name) = #field_name.split(); }
         } else {
           quote! {
-            let #write_name = ::leptos_tea::leptos_reactive::create_rw_signal(__cx, #field_name);
+            let #write_name = ::leptos_tea::leptos_reactive::create_rw_signal(#field_name);
             let #read_name = #write_name.read_only();
           }
         };
@@ -312,10 +312,7 @@ fn generate_split_fn_impl(
   quote! {
     #vis fn split(
       self,
-      cx: ::leptos_tea::leptos_reactive::Scope
     ) -> (#view_model_name #type_generics, #update_model_name #type_generics) {
-      let __cx = cx;
-
       let Self #get_fields = self;
 
       #( #split_model_fields_exprs )*
@@ -341,14 +338,12 @@ fn generate_init_fn_impl(
   quote! {
     #vis fn init<Msg: ::core::default::Default + 'static>(
       self,
-      cx: ::leptos_tea::leptos_reactive::Scope,
       update_fn: impl ::core::ops::Fn(
         #update_model_name #type_generics,
         Msg,
         ::leptos_tea::Cmd<Msg>,
       ) + 'static
     ) -> (#view_model_name #type_generics, ::leptos_tea::MsgDispatcher<Msg>) {
-      let __cx = cx;
       let __update_fn = update_fn;
 
       let (__tx, mut __rx)
@@ -356,9 +351,9 @@ fn generate_init_fn_impl(
 
       __tx.unbounded_send(Msg::default()).unwrap();
 
-      let __tx_store = ::leptos_tea::leptos_reactive::store_value(cx, __tx);
+      let __tx_store = ::leptos_tea::leptos_reactive::store_value(__tx);
 
-      let (__view_model, __update_model) = self.split(cx);
+      let (__view_model, __update_model) = self.split();
 
       ::leptos_tea::leptos_reactive::spawn_local(async move {
         while let Some(msg)
