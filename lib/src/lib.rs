@@ -122,20 +122,13 @@
 
 #[doc(hidden)]
 pub use futures;
-use futures::{
-  channel::mpsc::UnboundedSender,
-  FutureExt,
-  SinkExt,
-};
+use futures::{channel::mpsc::UnboundedSender, FutureExt, SinkExt};
 #[doc(hidden)]
 pub use leptos_reactive;
 use leptos_reactive::*;
 pub use leptos_tea_macros::*;
 use smallvec::SmallVec;
-use std::{
-  future::Future,
-  pin::Pin,
-};
+use std::{future::Future, pin::Pin};
 
 type CmdFut<Msg> = Pin<Box<dyn Future<Output = SmallVec<[Msg; 4]>>>>;
 
@@ -212,32 +205,32 @@ impl<Msg: 'static> Clone for Cmd<Msg> {
 /// to force this to happen before `Cmd` drops.
 impl<Msg: 'static> Drop for Cmd<Msg> {
   fn drop(&mut self) {
-    let msg_dispatcher = self.msg_dispatcher.get_value();
+    if let Some(msg_dispatcher) = self.msg_dispatcher.try_get_value() {
+      for cmds in std::mem::take(&mut self.cmds) {
+        let mut msg_dispatcher = msg_dispatcher.clone();
 
-    for cmds in std::mem::take(&mut self.cmds) {
-      let mut msg_dispatcher = msg_dispatcher.clone();
+        spawn_local(async move {
+          let mut cmds = cmds.await.into_iter();
 
-      spawn_local(async move {
-        let mut cmds = cmds.await.into_iter();
+          if let Some(msg) = cmds.next() {
+            msg_dispatcher.send(msg).await.unwrap();
+          }
 
-        if let Some(msg) = cmds.next() {
+          for msg in cmds {
+            let mut msg_dispatcher = msg_dispatcher.clone();
+
+            spawn_local(async move { msg_dispatcher.send(msg).await.unwrap() });
+          }
+        });
+      }
+
+      for msg in std::mem::take(&mut self.msgs) {
+        let mut msg_dispatcher = msg_dispatcher.clone();
+
+        spawn_local(async move {
           msg_dispatcher.send(msg).await.unwrap();
-        }
-
-        for msg in cmds {
-          let mut msg_dispatcher = msg_dispatcher.clone();
-
-          spawn_local(async move { msg_dispatcher.send(msg).await.unwrap() });
-        }
-      });
-    }
-
-    for msg in std::mem::take(&mut self.msgs) {
-      let mut msg_dispatcher = msg_dispatcher.clone();
-
-      spawn_local(async move {
-        msg_dispatcher.send(msg).await.unwrap();
-      });
+        });
+      }
     }
   }
 }
@@ -247,7 +240,7 @@ pub struct MsgDispatcher<Msg: 'static>(StoredValue<UnboundedSender<Msg>>);
 
 impl<Msg: 'static> Clone for MsgDispatcher<Msg> {
   fn clone(&self) -> Self {
-    Self(self.0)
+    *self
   }
 }
 
@@ -292,19 +285,19 @@ impl<Msg> MsgDispatcher<Msg> {
   /// This is the same as calling  `msg_dispatcher(msg)`
   /// on nightly.
   pub fn dispatch(self, msg: Msg) {
-    let mut msg_dispatcher = self.0.get_value();
-
-    spawn_local(async move {
-      msg_dispatcher.send(msg).await.unwrap();
-    });
+    if let Some(mut msg_dispatcher) = self.0.try_get_value() {
+      spawn_local(async move {
+        msg_dispatcher.send(msg).await.unwrap();
+      });
+    }
   }
 
   /// Dispatches the message immediately, rather than waiting for
   /// the next micro-task.
   pub fn dispatch_immediate(self, msg: Msg) {
-    let msg_dispatcher = self.0.get_value();
-
-    msg_dispatcher.unbounded_send(msg).unwrap();
+    if let Some(msg_dispatcher) = self.0.try_get_value() {
+      msg_dispatcher.unbounded_send(msg).unwrap();
+    }
   }
 
   /// Batches multiple messages together.
