@@ -330,6 +330,7 @@ fn generate_init_fn_impl(
   let (_, type_generics, _) = generics.split_for_impl();
 
   quote! {
+    #[track_caller]
     #vis fn init<Msg: ::core::default::Default + 'static>(
       self,
       update_fn: impl ::core::ops::Fn(
@@ -349,18 +350,28 @@ fn generate_init_fn_impl(
 
       let (__view_model, __update_model) = self.split();
 
-      ::leptos_tea::leptos_reactive::spawn_local_with_current_owner(async move {
-        while let Some(msg)
-          = ::leptos_tea::futures::StreamExt::next(&mut __rx).await
-        {
-          let __cmd_dispatcher = ::leptos_tea::Cmd::new(
-            ::leptos_tea::leptos_reactive::Owner::current(),
-            __tx_store,
-          );
+      ::leptos_tea::leptos_reactive::try_spawn_local_with_current_owner(
+        async move {
+          while let Some(msg)
+            = ::leptos_tea::futures::StreamExt::next(&mut __rx).await
+          {
+            let __cmd_dispatcher = ::leptos_tea::Cmd::new(
+              ::leptos_tea::leptos_reactive::Owner::current()
+                .expect(
+                  "`Model::init()` must be called  within \
+                  the context of an `Owner`\n\
+                  \n\
+                  try calling `Model::init()` at the top level of \
+                  the component definition"
+                ),
+              __tx_store,
+            );
 
-          __update_fn(__update_model, msg, __cmd_dispatcher);
-        }
-      });
+            __update_fn(__update_model, msg, __cmd_dispatcher);
+          }
+        },
+        || {},
+      );
 
       (__view_model, ::leptos_tea::MsgDispatcher::new(__tx_store))
     }
